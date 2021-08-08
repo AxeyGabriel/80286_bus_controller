@@ -1,0 +1,155 @@
+;PALASM Design Description
+
+;---------------------------------- Declaration Segment ------------
+TITLE	 80286 BUS CONTROLLER LOGIC
+PATTERN
+REVISION 1
+AUTHOR	 AXEY GABRIEL MULLER ENDRES
+COMPANY
+DATE	 11/27/16
+
+CHIP  _BUS_CTRL PAL22V10
+
+;---------------------------------- PIN Declarations ---------------
+PIN 1	286CLK			COMBINATORIAL
+PIN 2	nS1				COMBINATORIAL
+PIN 3	nS0				COMBINATORIAL
+PIN 4	MnIO			COMBINATORIAL
+PIN 5	nOE				COMBINATORIAL
+PIN 14	nIORD			COMBINATORIAL
+PIN 15	nIOWR			COMBINATORIAL
+PIN 16	nMEMRD			COMBINATORIAL
+PIN 17	nMEMWR			COMBINATORIAL
+PIN 18	nINTA			COMBINATORIAL
+PIN 19	DTnR			COMBINATORIAL
+PIN 20	DEN				COMBINATORIAL
+PIN 21	MCE				COMBINATORIAL
+PIN 22	ALE				COMBINATORIAL
+PIN 23	HSCYCLE			COMBINATORIAL
+
+;----------------------------------- Boolean Equation Segment ------
+EQUATIONS
+
+ALE = /nINTA + /nIORD + /nIOWR + /nMEMRD + /nMEMWR
+DEN = /nINTA + /nIORD + /nIOWR + /nMEMRD + /nMEMWR
+DTnR = nINTA * nIORD * nMEMRD
+MCE = /nINTA
+
+MCE.TRST = /nOE
+DTnR.TRST = /nOE
+DEN.TRST = /nOE
+ALE.TRST = /nOE
+nINTA.TRST = /nOE
+nIORD.TRST = /nOE
+nIOWR.TRST = /nOE
+nMEMRD.TRST = /nOE
+nMEMWR.TRST = /nOE
+HSCYCLE.TRST = /nOE
+
+CASE (MnIO, nS1, nS0)
+BEGIN
+	;----------- CYCLE: INTERRUPT ACKNOWLEDGE -----------
+	#b000: BEGIN
+				nINTA = 0
+				nIORD = 1
+				nIOWR = 1
+				nMEMRD = 1
+				nMEMWR = 1
+				HSCYCLE = 0
+			END
+			
+	;----------- CYCLE: IO READ -----------
+	#b001: BEGIN
+				nINTA = 1
+				nIORD = 0
+				nIOWR = 1
+				nMEMRD = 1
+				nMEMWR = 1
+				HSCYCLE = 0
+			END
+			
+	;----------- CYCLE: IO WRITE -----------
+	#b010: BEGIN
+				nINTA = 1
+				nIORD = 1
+				nIOWR = 0
+				nMEMRD = 1
+				nMEMWR = 1
+				HSCYCLE = 0
+			END
+			
+	;----------- CYCLE: IDLE -----------
+	#b011: BEGIN
+				nINTA = 1
+				nIORD = 1
+				nIOWR = 1
+				nMEMRD = 1
+				nMEMWR = 1
+				HSCYCLE = 0
+			END
+			
+	;----------- CYCLE: HALT OR SHUTDOWN -----------
+	#b100: BEGIN
+				nINTA = 1
+				nIORD = 1
+				nIOWR = 1
+				nMEMRD = 1
+				nMEMWR = 1
+				HSCYCLE = 1
+			END
+			
+	;----------- CYCLE: MEMORY READ -----------		
+	#b101: BEGIN
+				nINTA = 1
+				nIORD = 1
+				nIOWR = 1
+				nMEMRD = 0
+				nMEMWR = 1
+				HSCYCLE = 0
+			END
+			
+	;----------- CYCLE: MEMORY WRITE -----------		
+	#b110: BEGIN
+				nINTA = 1
+				nIORD = 1
+				nIOWR = 1
+				nMEMRD = 1
+				nMEMWR = 0
+				HSCYCLE = 0
+			END
+			
+	;----------- CYCLE: IDLE -----------
+	#b111: BEGIN
+				nINTA = 1
+				nIORD = 1
+				nIOWR = 1
+				nMEMRD = 1
+				nMEMWR = 1
+				HSCYCLE = 0
+			END
+END
+	
+;----------------------------------- Simulation Segment ------------
+SIMULATION
+	TRACE_ON MnIO nS1 nS0 nIOWR nIORD nMEMRD nMEMWR nINTA DTnR ALE DEN MCE nOE HSCYCLE
+	
+	SETF /MnIO /nS1 /nS0 /nOE ;----------- CYCLE: INTERRUPT ACKNOWLEDGE
+	SETF /MnIO /nS1 nS0 /nOE  ;----------- CYCLE: IO READ
+	SETF /MnIO nS1 /nS0 /nOE  ;----------- CYCLE: IO WRITE
+	SETF /MnIO nS1 nS0 /nOE   ;----------- CYCLE: IDLE
+	SETF MnIO /nS1 nS0 /nOE   ;----------- CYCLE: MEMORY READ
+	SETF MnIO nS1 /nS0 /nOE   ;----------- CYCLE: MEMORY WRITE
+	SETF MnIO nS1 nS0 /nOE	  ;----------- CYCLE: IDLE
+	SETF MnIO /nS1 /nS0 /nOE  ;----------- CYCLE: HALT OR SHUTDOWN
+	
+	SETF /MnIO /nS1 /nS0 nOE ;----------- CYCLE: INTERRUPT ACKNOWLEDGE | TRI-STATE
+	SETF /MnIO /nS1 nS0 nOE  ;----------- CYCLE: IO READ | TRI-STATE
+	SETF /MnIO nS1 /nS0 nOE  ;----------- CYCLE: IO WRITE | TRI-STATE
+	SETF /MnIO nS1 nS0 nOE	 ;----------- CYCLE: IDLE | TRI-STATE
+	SETF MnIO /nS1 nS0 nOE	 ;----------- CYCLE: MEMORY READ | TRI-STATE
+	SETF MnIO nS1 /nS0 nOE	 ;----------- CYCLE: MEMORY WRITE | TRI-STATE
+	SETF MnIO nS1 nS0 nOE	 ;----------- CYCLE: IDLE | TRI-STATE
+	SETF MnIO /nS1 /nS0 nOE  ;----------- CYCLE: HALT OR SHUTDOWN | TRI-STATE
+	
+	TRACE_OFF
+;-------------------------------------------------------------------
